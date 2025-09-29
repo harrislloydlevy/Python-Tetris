@@ -1,4 +1,5 @@
 import pygame
+from enum import Enum
 from copy import deepcopy
 from random import choice, randrange
 
@@ -27,6 +28,13 @@ grid = [pygame.Rect(x * TILE, y * TILE, TILE, TILE) for x in range(W) for y in r
 get_color = lambda : (randrange(30, 256), randrange(30, 256), randrange(30, 256))
 grid = [pygame.Rect(x * TILE, y * TILE, TILE, TILE) for x in range(W) for y in range(H)]
 
+class Action(Enum):
+    LEFT = 1
+    RIGHT = 2
+    DROP = 3
+    ROTATE = 4
+    NOTHING = 5
+
 class PyTetris:
     def __init__(self):
         self.sc = pygame.display.set_mode(RES)
@@ -51,7 +59,7 @@ class PyTetris:
             return False
         return True
 
-    def play_step(self):
+    def play_step(self, action):
             dx, rotate = 0, False
             self.sc.fill((0, 0, 0))
             self.sc.blit(self.game_sc, (20, 20))
@@ -59,19 +67,16 @@ class PyTetris:
             # delay for full self.lines
             for i in range(self.lines):
                 pygame.time.wait(200)
+
             # control
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    exit()
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT:
-                        dx = -1
-                    elif event.key == pygame.K_RIGHT:
-                        dx = 1
-                    elif event.key == pygame.K_DOWN:
-                        self.anim_limit = 0
-                    elif event.key == pygame.K_UP:
-                        rotate = True
+            if action == Action.LEFT:
+                dx = -1
+            elif action == Action.RIGHT:
+                dx = 1
+            elif action == Action.DROP:
+                self.anim_limit = 0
+            elif action == Action.ROTATE:
+                rotate = True
 
             # move x
             self.figures_old = deepcopy(self.figures)
@@ -85,7 +90,7 @@ class PyTetris:
             self.anim_count += self.anim_speed
             if self.anim_count > self.anim_limit:
                 self.anim_count = 0
-                self.figures_old = deepcopy(self.figures)
+                self.figures_ld = deepcopy(self.figures)
                 for i in range(4):
                     self.figures[i].y += 1
                     if not self.check_borders(i):
@@ -160,4 +165,19 @@ if __name__ == "__main__":
     tetris = PyTetris()
 
     while not tetris.game_over:
-      tetris.play_step()
+        actions = []
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                 if event.key == pygame.K_LEFT:
+                    actions.append(Action.LEFT)
+                 elif event.key == pygame.K_RIGHT:
+                    actions.append(Action.RIGHT)
+                 elif event.key == pygame.K_DOWN:
+                    actions.append(Action.DROP)
+                 elif event.key == pygame.K_UP:
+                    actions.append(Action.ROTATE)
+        if len(actions) == 0:
+            actions.append(Action.NOTHING)
+
+        for action in actions:
+          tetris.play_step(action)
